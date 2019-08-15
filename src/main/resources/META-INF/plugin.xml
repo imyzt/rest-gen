@@ -1,0 +1,27 @@
+<idea-plugin>
+    <id>top.imyzt.plugin.rest-gen</id>
+    <name>restful-api-generator</name>
+    <vendor email="imyzt01@gmail.com" url="http://www.imyzt.top">imyzt</vendor>
+
+    <description>
+    用特定的格式生成Spring MVC的控制器,减少重复性动作
+    </description>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+        <action id="top.imyzt.plugin" class="RestGenerator" text="RestGenerator" description="根据规则自动生成Rest接口方法">
+            <add-to-group group-id="CodeMenu" anchor="first"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="shift meta I"/>
+        </action>
+    </actions>
+</idea-plugin>
