@@ -1,36 +1,37 @@
+package top.imyzt.plugin;
+
 import com.intellij.diagnostic.PluginException;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
-import com.intellij.openapi.ui.popup.Balloon;
-import com.intellij.openapi.ui.popup.BalloonBuilder;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.ui.JBColor;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import top.imyzt.plugin.utils.RestUtils;
 
-import java.awt.*;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class RestGenerator extends AnAction {
 
     private static final Logger log = LoggerFactory.getLogger(RestGenerator.class);
 
+    /**
+     * 方法模板
+     */
     private static final String METHOD_TEMPLATE = "${requestMethod}(\"${path}${pathArgs}\")\n" +
             "\tpublic void ${methodName}(${args}) {\n" +
             "\t\t\n" +
             "\t}";
 
+    /**
+     * 请求方法映射
+     */
     private static final Map<String, String> REQUEST_METHOD_MAP = new HashMap<>(4);
     static {
         REQUEST_METHOD_MAP.put("get", "@GetMapping");
@@ -39,8 +40,10 @@ public class RestGenerator extends AnAction {
         REQUEST_METHOD_MAP.put("delete", "@DeleteMapping");
     }
 
+    /**
+     * 字符串转换java常规类型
+     */
     private static LinkedHashMap<String, String> JAVA_TYPE_MAP = new LinkedHashMap<>(9);
-
     static {
         JAVA_TYPE_MAP.put("string", "String");
         JAVA_TYPE_MAP.put("int", "Integer");
@@ -75,9 +78,9 @@ public class RestGenerator extends AnAction {
         }
 
         // 规则校验
-        if (!validator(text)) {
+        if (!RestUtils.validator(text)) {
             // 不符合格式
-            showPopup(editor, "命令不符合格式\n" +
+            RestUtils.showPopup(editor, "命令不符合格式\n" +
                     "eg: getUserByIdOrName(int$id,string#name).get\n" +
                     "getUserByIdOrName -> 方法名/rest地址\n" +
                     "$/# -> url参数/表单参数\n" +
@@ -91,14 +94,9 @@ public class RestGenerator extends AnAction {
         replaceSelectText(e, editor, selectionModel, methodString);
     }
 
-    private boolean validator(String text) {
-        String regex = "\\S+\\((\\S*\\$\\S*|\\S*#\\S*)\\)\\.(get|post|put|delete)";
-        // 忽略大小写
-        Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(text);
-        return matcher.matches();
-    }
-
+    /**
+     * 替换选中文本
+     */
     private void replaceSelectText(AnActionEvent e, Editor editor, SelectionModel selectionModel, String methodString) {
         Document document = editor.getDocument();
         Runnable runnable = () -> {
@@ -109,13 +107,16 @@ public class RestGenerator extends AnAction {
                     document.insertString(selectionModel.getSelectionStart(), methodString);
                 } catch (PluginException var3) {
                     log.error("无法替换文本信息", var3);
-                    showPopup(editor, "无法替换文本");
+                    RestUtils.showPopup(editor, "无法替换文本");
                 }
             }
         };
         WriteCommandAction.runWriteCommandAction(e.getData(PlatformDataKeys.PROJECT), runnable);
     }
 
+    /**
+     * 创建方法文本
+     */
     private static String createMethod(String text) {
 
         int firstIndex = StringUtils.indexOf(text, "(");
@@ -151,6 +152,9 @@ public class RestGenerator extends AnAction {
                 });
     }
 
+    /**
+     * 转换规则文本到参数列表字符串
+     */
     private static void translationArgsToString(String argsStr, StringBuilder path, StringBuilder builder) {
 
         String[] argsArr = StringUtils.split(argsStr, ",");
@@ -177,16 +181,5 @@ public class RestGenerator extends AnAction {
         }
     }
 
-    private void showPopup(Editor editor, String showText) {
-        ApplicationManager.getApplication().invokeLater(() -> {
-            // 获取默认popup工厂
-            JBPopupFactory popupFactory = JBPopupFactory.getInstance();
-            BalloonBuilder builder = popupFactory.createHtmlTextBalloonBuilder(showText, null,
-                    new JBColor(new Color(188, 238, 188), new Color(73, 120, 73)), null);
 
-            builder.setFadeoutTime(10000) // 10秒无操作
-                    .createBalloon()  // 创建气泡
-                    .show(popupFactory.guessBestPopupLocation(editor), Balloon.Position.below); //指定位置(editor对象即目前选中的内容),并显示在下方
-        });
-    }
 }
